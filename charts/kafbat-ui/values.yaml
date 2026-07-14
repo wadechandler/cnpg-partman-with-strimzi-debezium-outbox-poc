@@ -1,0 +1,21 @@
+# Values for upstream chart kafbat-ui/kafka-ui (https://kafbat.github.io/helm-charts).
+# Installed by setup.sh into namespace kafka after Strimzi Kafka is Ready.
+# Not nested under cnpg-outbox-poc-infra: that chart is platform CRs only.
+
+fullnameOverride: kafbat-ui
+
+yamlApplicationConfig:
+  kafka:
+    clusters:
+      - name: poc-kafka
+        bootstrapServers: poc-kafka-kafka-bootstrap.kafka.svc:9092
+  auth:
+    type: disabled
+  management:
+    health:
+      ldap:
+        enabled: false
+
+service:
+  type: ClusterIP
+  port: 80

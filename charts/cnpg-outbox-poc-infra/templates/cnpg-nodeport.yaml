@@ -1,0 +1,18 @@
+# Expose CNPG primary on the KIND node for host tools (DataGrip, local psql).
+# NodePort is mapped in infra/kind-config.yaml. In-cluster apps should use
+# {{ .Values.postgres.clusterName }}-rw:5432 — not this Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.postgres.clusterName }}-nodeport
+  namespace: {{ .Values.namespaces.app }}
+spec:
+  type: NodePort
+  selector:
+    cnpg.io/cluster: {{ .Values.postgres.clusterName }}
+    role: primary
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      nodePort: {{ .Values.postgres.nodePort }}

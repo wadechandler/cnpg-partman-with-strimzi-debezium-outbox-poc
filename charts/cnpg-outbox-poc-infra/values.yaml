@@ -1,0 +1,66 @@
+# Injectable knobs for teammates / prod-like layouts (separate DB cluster vs Kafka).
+# Operators (CNPG + Strimzi) are NOT installed by this chart — see setup.sh / README.
+
+global:
+  # Used for all topic names: {{ .Values.global.topicPrefix }}.events.*
+  topicPrefix: cnpg-outbox-poc
+
+# Explicit namespaces on each resource (clarity across app vs kafka ns).
+# Prefer --set / values override over relying on helm --namespace alone.
+namespaces:
+  app: cnpg-outbox-poc
+  kafka: kafka
+
+postgres:
+  clusterName: cnpg-outbox-db
+  imageName: cnpg-outbox-poc-pg:17.5-partman
+  imagePullPolicy: Never
+  database: app
+  owner: app
+  # ConfigMap rendered from files/sql/00*.sql (see templates/sql-configmap.yaml)
+  sqlConfigMap: cnpg-outbox-poc-sql
+  storageSize: 5Gi
+  # KIND hostPort mapping — see infra/kind-config.yaml
+  nodePort: 30432
+  # Host used by Debezium connector (separate "DB cluster" injection point).
+  # Override when Postgres lives in another cluster/namespace.
+  serviceHost: cnpg-outbox-db-rw.cnpg-outbox-poc.svc
+
+kafka:
+  clusterName: poc-kafka
+  # Must match Strimzi operator supported versions (0.51.0 → 4.2.0).
+  version: "4.2.0"
+  metadataVersion: "4.2"
+  replicas: 1
+  storageSize: 5Gi
+  bootstrapNodePort: 30092
+  brokerNodePort: 30093
+  advertisedHost: localhost
+  retentionMs: "3600000"
+  # In-cluster bootstrap for KafkaConnect (override if Kafka is remote).
+  bootstrapServers: ""  # default: {{ clusterName }}-kafka-bootstrap.{{ namespaces.kafka }}.svc:9092
+
+debezium:
+  connectName: debezium-connect
+  image: cnpg-outbox-poc/debezium-connect:local
+  # KafkaConnect.spec.version — align with kafka.version
+  connectVersion: "4.2.0"
+  connectorName: replay-outbox-connector
+  database:
+    # Empty → defaults to postgres.serviceHost (inject separate DB here).
+    hostname: ""
+    port: "5432"
+    user: postgres
+    dbname: app
+    # Password is still patched by setup.sh from the CNPG superuser secret
+    # after syncing into the kafka namespace. Do not put real passwords in values.
+  tableIncludeList: public.replay_outbox.*
+  slotName: cnpg_outbox_poc_debezium
+  # Empty → default global.topicPrefix + ".outbox"
+  topicPrefix: ""
+  # Empty → default global.topicPrefix + ".events.retry"
+  retryTopic: ""
+  # Heartbeats stay off the retry topic (see connector SMT predicates).
+  # Topic name: {heartbeatTopicPrefix}.{debezium topic.prefix}
+  heartbeatIntervalMs: "5000"
+  heartbeatTopicPrefix: "__debezium-heartbeat"

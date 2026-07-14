@@ -1,0 +1,38 @@
+{{- $prefix := include "cnpg-outbox-poc-infra.topicPrefix" . -}}
+{{- $topics := list "events.original" "events.retry-dlq" "events.true-dlq" "events.retry" -}}
+{{- range $i, $suffix := $topics }}
+{{- if $i }}
+---
+{{- end }}
+# Short retention for POC topics.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: {{ printf "%s.%s" $prefix $suffix }}
+  namespace: {{ $.Values.namespaces.kafka }}
+  labels:
+    strimzi.io/cluster: {{ $.Values.kafka.clusterName }}
+spec:
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: {{ $.Values.kafka.retentionMs | quote }}
+    segment.bytes: "1048576"
+{{- end }}
+---
+# Debezium connector heartbeats (slot progress) — not business retry traffic.
+# metadata.name is DNS-safe; spec.topicName is the real Kafka topic Debezium uses.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: debezium-heartbeat-outbox
+  namespace: {{ .Values.namespaces.kafka }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.clusterName }}
+spec:
+  topicName: {{ include "cnpg-outbox-poc-infra.heartbeatTopic" . | quote }}
+  partitions: 1
+  replicas: 1
+  config:
+    retention.ms: {{ .Values.kafka.retentionMs | quote }}
+    segment.bytes: "1048576"

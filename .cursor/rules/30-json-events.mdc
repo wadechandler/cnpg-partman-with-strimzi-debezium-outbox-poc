@@ -1,0 +1,15 @@
+---
+description: Event JSON envelope and Google JSON style
+globs: "**/*.json,internal/event/**,docs/event-types.md,sql/**"
+---
+
+# JSON / events
+
+- Follow [Google JSON Style Guide](https://google.github.io/styleguide/jsoncstyleguide.xml).
+- Wire JSON: camelCase (`organizationId`, `eventType`, `createdAt`, `schemaVersion`, `payload`).
+- Postgres: snake_case columns; map at ingest/replay boundaries.
+- DLQ topics: domain envelope from Go. Retry topic: outbox row via Debezium + `ReplaceField` rename SMT to camelCase (see infra connector chart).
+- Heartbeats: `__debezium-heartbeat.*` only — do not RegexRouter them onto retry.
+- Envelope fields: `id`, `organizationId`, `clientId`, `contactId`, `eventType`, `schemaVersion`, `createdAt`, `payload`.
+- Kafka headers of interest: `dlq-reason`, `retry-reason`.
+- Fake types documented in `docs/event-types.md` — extend payload, not the envelope, for new use cases.

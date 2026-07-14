@@ -1,0 +1,20 @@
+# Multi-arch event-generator image (linux/amd64, linux/arm64).
+# Build: docker buildx build --platform linux/amd64,linux/arm64 \
+#   -f build/Dockerfile.event-generator -t event-generator:local .
+ARG GO_VERSION=1.26
+
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
+ARG TARGETOS
+ARG TARGETARCH
+WORKDIR /src
+RUN apk add --no-cache ca-certificates git
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -trimpath -ldflags="-s -w" -o /out/event-generator ./cmd/event-generator
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/event-generator /event-generator
+USER nonroot:nonroot
+ENTRYPOINT ["/event-generator"]

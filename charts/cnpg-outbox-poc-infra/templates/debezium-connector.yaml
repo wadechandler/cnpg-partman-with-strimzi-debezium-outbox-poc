@@ -1,0 +1,46 @@
+# Postgres connector: replay_outbox → retry topic (camelCase wire).
+# Heartbeats go to a dedicated topic (not retry). Password patched by setup.sh.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaConnector
+metadata:
+  name: {{ .Values.debezium.connectorName }}
+  namespace: {{ .Values.namespaces.kafka }}
+  labels:
+    strimzi.io/cluster: {{ .Values.debezium.connectName }}
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    database.hostname: {{ include "cnpg-outbox-poc-infra.debeziumHostname" . }}
+    database.port: {{ .Values.debezium.database.port | quote }}
+    database.user: {{ .Values.debezium.database.user }}
+    database.dbname: {{ .Values.debezium.database.dbname }}
+    topic.prefix: {{ include "cnpg-outbox-poc-infra.debeziumTopicPrefix" . }}
+    table.include.list: {{ .Values.debezium.tableIncludeList }}
+    plugin.name: pgoutput
+    publication.autocreate.mode: filtered
+    slot.name: {{ .Values.debezium.slotName }}
+    tombstones.on.delete: "false"
+    heartbeat.interval.ms: {{ .Values.debezium.heartbeatIntervalMs | quote }}
+    topic.heartbeat.prefix: {{ .Values.debezium.heartbeatTopicPrefix | quote }}
+    # Only mutate real outbox change topics — never heartbeats / schema topics.
+    predicates: isOutboxChange
+    predicates.isOutboxChange.type: org.apache.kafka.connect.transforms.predicates.TopicNameMatches
+    predicates.isOutboxChange.pattern: .*\.public\.replay_outbox.*
+    transforms: unwrap,rename,route
+    transforms.unwrap.type: io.debezium.transforms.ExtractNewRecordState
+    transforms.unwrap.predicate: isOutboxChange
+    transforms.unwrap.drop.tombstones: "true"
+    transforms.unwrap.delete.handling.mode: drop
+    # Postgres columns are snake_case; project to Google-style camelCase on the wire.
+    transforms.rename.type: org.apache.kafka.connect.transforms.ReplaceField$Value
+    transforms.rename.predicate: isOutboxChange
+    transforms.rename.renames: "organization_id:organizationId,client_id:clientId,contact_id:contactId,event_type:eventType,schema_version:schemaVersion,event_created_at:eventCreatedAt,source_dlq:sourceDlq,retry_reason:retryReason,created_at:createdAt"
+    transforms.route.type: org.apache.kafka.connect.transforms.RegexRouter
+    transforms.route.predicate: isOutboxChange
+    transforms.route.regex: ".*"
+    transforms.route.replacement: {{ include "cnpg-outbox-poc-infra.retryTopic" . }}
+    key.converter: org.apache.kafka.connect.json.JsonConverter
+    key.converter.schemas.enable: "false"
+    value.converter: org.apache.kafka.connect.json.JsonConverter
+    value.converter.schemas.enable: "false"

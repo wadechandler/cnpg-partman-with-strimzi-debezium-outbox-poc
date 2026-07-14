@@ -1,0 +1,12 @@
+---
+description: Idiomatic Go, deps, multi-arch builds
+globs: "**/*.go,go.mod,go.sum,build/**,cmd/**,internal/**"
+---
+
+# Go
+
+- Layout: `cmd/<app>/main.go` + `internal/...`. Share envelope in `internal/event`.
+- Style: [Google Go guide](https://google.github.io/styleguide/go/) + `gofmt` / `goimports`.
+- Errors: wrap with `%w`; pass `context.Context` on I/O; no panic for expected failures.
+- Deps: prefer stdlib; before add/upgrade run `make vulncheck` (`govulncheck` / OSV–MITRE CVE). Tidy `go.mod`.
+- Images: multi-arch (`linux/amd64`, `linux/arm64`) under `build/`; load into KIND with project scripts.

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dlq-ingester
+  labels:
+    app.kubernetes.io/name: dlq-ingester
+    app.kubernetes.io/part-of: cnpg-outbox-poc
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dlq-ingester
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dlq-ingester
+        app.kubernetes.io/part-of: cnpg-outbox-poc
+    spec:
+      containers:
+        - name: dlq-ingester
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: KAFKA_BOOTSTRAP
+              value: {{ .Values.kafka.bootstrapServers | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: uri
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

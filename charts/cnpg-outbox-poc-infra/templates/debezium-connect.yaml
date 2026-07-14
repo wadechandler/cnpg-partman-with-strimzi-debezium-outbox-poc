@@ -1,0 +1,25 @@
+# Built image loaded into KIND: see values.debezium.image
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaConnect
+metadata:
+  name: {{ .Values.debezium.connectName }}
+  namespace: {{ .Values.namespaces.kafka }}
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+spec:
+  version: {{ .Values.debezium.connectVersion | quote }}
+  replicas: 1
+  image: {{ .Values.debezium.image }}
+  bootstrapServers: {{ include "cnpg-outbox-poc-infra.kafkaBootstrap" . }}
+  groupId: {{ printf "%s-debezium" .Values.global.topicPrefix }}
+  configStorageTopic: {{ printf "%s.connect-configs" .Values.global.topicPrefix }}
+  offsetStorageTopic: {{ printf "%s.connect-offsets" .Values.global.topicPrefix }}
+  statusStorageTopic: {{ printf "%s.connect-status" .Values.global.topicPrefix }}
+  config:
+    offset.storage.replication.factor: 1
+    config.storage.replication.factor: 1
+    status.storage.replication.factor: 1
+    key.converter: org.apache.kafka.connect.json.JsonConverter
+    value.converter: org.apache.kafka.connect.json.JsonConverter
+    key.converter.schemas.enable: false
+    value.converter.schemas.enable: false

@@ -1,0 +1,16 @@
+---
+description: KIND, operators, Helm charts, and infra scripts
+globs: infra/**, charts/**, Makefile, sql/**
+---
+
+# Infra
+
+- KIND cluster name: `cnpg-outbox-poc`. Config: `infra/kind-config.yaml`.
+- Bootstrap via `infra/scripts/setup.sh` (idempotent). Teardown: `teardown.sh`.
+- Operators via Helm (CNPG, Strimzi). Platform CRs **only** via `charts/cnpg-outbox-poc-infra` (values injection; bootstrap SQL ConfigMap from `files/sql/00*.sql`). App via `charts/cnpg-outbox-poc`. Kafbat UI via upstream `kafbat-ui/kafka-ui` + `charts/kafbat-ui/values.yaml` (setup.sh after Kafka Ready; `SKIP_KAFBAT=1` to skip; browse with `make kafbat`). Ops SQL examples: `sql/ops/` (not in ConfigMap).
+- To read rendered CRs: `make render-infra` (do not keep a parallel `infra/manifests/` tree).
+- Kafka topics: `cnpg-outbox-poc.*`, short `retention.ms`.
+- Custom CNPG image: `infra/cnpg-image/`; tag must start with PG major (e.g. `17`).
+- Shell style: prefer [Google shell guide](https://google.github.io/styleguide/shellguide.html) conventions.
+- Do not enable Docker Desktop’s built-in Kubernetes for this POC — use standalone `kind`.
+- Do not leave long-lived `kubectl port-forward` in `setup.sh` / `make up` (use Make targets like `make kafbat` instead).

@@ -1,0 +1,14 @@
+{{- /*
+  CNPG bootstrap SQL for postInitApplicationSQLRefs.
+  Canonical files: files/sql/00*.sql (ops examples stay at repo-root sql/ops/).
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.postgres.sqlConfigMap }}
+  namespace: {{ .Values.namespaces.app }}
+data:
+{{- range $path, $_ := .Files.Glob "files/sql/00*.sql" }}
+  {{ base $path }}: |-
+{{ $.Files.Get $path | nindent 4 }}
+{{- end }}

@@ -1,0 +1,27 @@
+image:
+  repository: cnpg-outbox-poc/dlq-ingester
+  tag: local
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# Match charts/cnpg-outbox-poc-infra kafka.clusterName + namespaces.kafka
+# (infra default bootstrap: poc-kafka-kafka-bootstrap.kafka.svc:9092).
+kafka:
+  bootstrapServers: poc-kafka-kafka-bootstrap.kafka.svc:9092
+
+# Match charts/cnpg-outbox-poc-infra postgres.clusterName / namespaces.app.
+# secretName is the CNPG-generated app user secret: {{ clusterName }}-app.
+database:
+  secretName: cnpg-outbox-db-app
+  host: cnpg-outbox-db-rw.cnpg-outbox-poc.svc  # same idea as infra postgres.serviceHost
+  port: 5432
+  dbname: app
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cnpg-outbox-poc-infra
+description: POC platform CRs (CNPG Cluster, Kafka, topics, Debezium Connect/Connector). Operators are installed separately by setup.sh.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

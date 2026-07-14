@@ -1,0 +1,26 @@
+# KIND: cnpg-outbox-poc
+# Ports: Postgres 30432, Kafka bootstrap 30092, broker 30093
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: cnpg-outbox-poc
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 30432
+        hostPort: 30432
+        protocol: TCP
+      - containerPort: 30092
+        hostPort: 30092
+        protocol: TCP
+      - containerPort: 30093
+        hostPort: 30093
+        protocol: TCP
+  - role: worker
+    labels:
+      workload: general

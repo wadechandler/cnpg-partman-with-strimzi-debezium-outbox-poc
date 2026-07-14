@@ -1,0 +1,14 @@
+---
+description: Core POC standards, mutation boundary, git and style
+alwaysApply: true
+---
+
+# Project standards
+
+- **Repo:** `cnpg-partman-with-strimzi-debezium-outbox-poc` (MIT).
+- **Mutation boundary:** create/edit files only in this workspace. May create/delete/load/deploy against **this** KIND cluster (`cnpg-outbox-poc`) via `infra/scripts` and `Makefile`. Do not mutate host git config, Docker Desktop K8s UI settings, other clusters/repos, or unrelated system state unless the user explicitly asks.
+- **Git:** no `commit`, `remote add`, `gh repo create`, or `push` until the user explicitly asks after testing. `git init` OK.
+- **Email:** never write email addresses into project files.
+- **Style:** [Google style guides](https://google.github.io/styleguide/) (Go, JSON). Wire JSON = camelCase; SQL columns = snake_case.
+- **Agent docs:** keep `AGENTS.md` and rules short (bullets + links). Detail belongs in `docs/` / README.
+- **Scripts:** bash, `set -euo pipefail`, idempotent where practical.

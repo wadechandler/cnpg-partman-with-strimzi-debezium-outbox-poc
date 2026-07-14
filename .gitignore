@@ -1,0 +1,31 @@
+# Binaries
+/bin/
+/dist/
+/dlq-ingester
+/event-generator
+*.exe
+*.test
+*.out
+
+# Go
+vendor/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Build artifacts
+*.tar
+*.tar.gz
+
+# Kind / kubectl scratch
+.kube/
+tmp/

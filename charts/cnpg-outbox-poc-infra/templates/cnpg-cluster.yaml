@@ -1,0 +1,52 @@
+# CloudNativePG cluster for the outbox / DLQ POC.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.postgres.clusterName }}
+  namespace: {{ .Values.namespaces.app }}
+spec:
+  instances: 1
+  imageName: {{ .Values.postgres.imageName }}
+  imagePullPolicy: {{ .Values.postgres.imagePullPolicy }}
+  storage:
+    size: {{ .Values.postgres.storageSize }}
+  enableSuperuserAccess: true
+  postgresql:
+    # Only list libraries CNPG does NOT auto-manage. pg_stat_statements is enabled
+    # via parameters below; the operator injects it into shared_preload_libraries.
+    # pg_partman_bgw is NOT a managed extension — must be listed explicitly.
+    shared_preload_libraries:
+      - pg_partman_bgw
+    parameters:
+      pg_stat_statements.track: all
+      pg_partman_bgw.interval: "30"
+      pg_partman_bgw.role: postgres
+      pg_partman_bgw.dbname: {{ .Values.postgres.database | quote }}
+      max_replication_slots: "10"
+      max_wal_senders: "10"
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgres.database }}
+      owner: {{ .Values.postgres.owner }}
+      # Runs as superuser against the application database.
+      postInitApplicationSQL:
+        - CREATE SCHEMA IF NOT EXISTS partman
+        - CREATE EXTENSION IF NOT EXISTS pg_stat_statements
+        - CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA partman
+        - GRANT USAGE ON SCHEMA partman TO {{ .Values.postgres.owner }}
+        - GRANT ALL ON SCHEMA partman TO {{ .Values.postgres.owner }}
+        - GRANT ALL ON ALL TABLES IN SCHEMA partman TO {{ .Values.postgres.owner }}
+        - GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA partman TO {{ .Values.postgres.owner }}
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA partman GRANT ALL ON TABLES TO {{ .Values.postgres.owner }}
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA partman GRANT EXECUTE ON FUNCTIONS TO {{ .Values.postgres.owner }}
+        - ALTER ROLE {{ .Values.postgres.owner }} SET search_path TO public, partman
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: {{ .Values.postgres.sqlConfigMap }}
+            key: 002_dlq_tables.sql
+          - name: {{ .Values.postgres.sqlConfigMap }}
+            key: 003_replay_outbox.sql
+          - name: {{ .Values.postgres.sqlConfigMap }}
+            key: 004_partman_config.sql
+          - name: {{ .Values.postgres.sqlConfigMap }}
+            key: 005_grants.sql
